@@ -73,6 +73,8 @@ func validateLabelValues(vals []string, expectedNumberOfValues int) error {
 		)
 	}
 
+	vals = fixInvalidLabels(vals)
+
 	for _, val := range vals {
 		if !utf8.ValidString(val) {
 			return fmt.Errorf("label value %q is not valid UTF-8", val)
@@ -80,6 +82,26 @@ func validateLabelValues(vals []string, expectedNumberOfValues int) error {
 	}
 
 	return nil
+}
+
+func fixInvalidLabels(vals []string) []string {
+	for i, val := range vals {
+		if !utf8.ValidString(val) {
+			v := make([]rune, 0, len(val))
+			for i, r := range val {
+				if r == utf8.RuneError {
+					_, size := utf8.DecodeRuneInString(val[i:])
+					if size == 1 {
+						continue
+					}
+				}
+				v = append(v, r)
+			}
+			vals[i] = string(v)
+		}
+	}
+
+	return vals
 }
 
 func checkLabelName(l string) bool {

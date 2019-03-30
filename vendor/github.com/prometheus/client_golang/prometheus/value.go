@@ -20,7 +20,6 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	dto "github.com/prometheus/client_model/go"
-	"github.com/prometheus/common/log"
 )
 
 // ValueType is an enumeration of metric types that represent a simple value.
@@ -84,16 +83,8 @@ func NewConstMetric(desc *Desc, valueType ValueType, value float64, labelValues 
 	if desc.err != nil {
 		return nil, desc.err
 	}
-
 	if err := validateLabelValues(labelValues, len(desc.variableLabels)); err != nil {
-		log.Warnf("Failed to validate labels on metric %s: %+v", desc.fqName, labelValues)
-
-		return &constMetric{
-			desc:       desc,
-			valType:    valueType,
-			val:        value,
-			labelPairs: make([]*dto.LabelPair, 0),
-		}, nil
+		return nil, err
 	}
 	return &constMetric{
 		desc:       desc,

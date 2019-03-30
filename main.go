@@ -23,6 +23,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 
@@ -215,6 +216,27 @@ func (c *influxDBCollector) processSamples() {
 	}
 }
 
+func fixNonPrintableUTF(val string) string {
+	if utf8.ValidString(val) {
+		return val
+	}
+
+	v := make([]rune, 0, len(val))
+	for i, r := range val {
+		if r == utf8.RuneError {
+			v = append(v, '_')
+
+			_, size := utf8.DecodeRuneInString(val[i:])
+			if size == 1 {
+				continue
+			}
+		}
+		v = append(v, r)
+	}
+
+	return string(v)
+}
+
 // Collect implements prometheus.Collector.
 func (c *influxDBCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- lastPush
@@ -232,8 +254,14 @@ func (c *influxDBCollector) Collect(ch chan<- prometheus.Metric) {
 			continue
 		}
 
+		name := fixNonPrintableUTF(sample.Name)
+		labels := make(map[string]string)
+		for k, v := range sample.Labels {
+			labels[fixNonPrintableUTF(k)] = fixNonPrintableUTF(v)
+		}
+
 		metric := prometheus.MustNewConstMetric(
-			prometheus.NewDesc(sample.Name, "InfluxDB Metric", []string{}, sample.Labels),
+			prometheus.NewDesc(name, "InfluxDB Metric", []string{}, labels),
 			prometheus.UntypedValue,
 			sample.Value,
 		)

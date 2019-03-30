@@ -87,7 +87,7 @@ func NewConstMetric(desc *Desc, valueType ValueType, value float64, labelValues 
 	}
 
 	if err := validateLabelValues(labelValues, len(desc.variableLabels)); err != nil {
-		log.Warnf("Failed to validate labels: %+v", labelValues)
+		log.Warnf("Failed to validate labels on metric %s: %+v", desc.fqName, labelValues)
 		labelValues = fixInvalidLabels(labelValues)
 		if err := validateLabelValues(labelValues, len(desc.variableLabels)); err != nil {
 			return nil, err

@@ -16,7 +16,6 @@ package prometheus
 import (
 	"fmt"
 	"sort"
-	"unicode/utf8"
 
 	"github.com/golang/protobuf/proto"
 
@@ -88,10 +87,13 @@ func NewConstMetric(desc *Desc, valueType ValueType, value float64, labelValues 
 
 	if err := validateLabelValues(labelValues, len(desc.variableLabels)); err != nil {
 		log.Warnf("Failed to validate labels on metric %s: %+v", desc.fqName, labelValues)
-		labelValues = fixInvalidLabels(labelValues)
-		if err := validateLabelValues(labelValues, len(desc.variableLabels)); err != nil {
-			return nil, err
-		}
+
+		return &constMetric{
+			desc:       desc,
+			valType:    valueType,
+			val:        value,
+			labelPairs: make([]*dto.LabelPair, 0),
+		}, nil
 	}
 	return &constMetric{
 		desc:       desc,
@@ -99,26 +101,6 @@ func NewConstMetric(desc *Desc, valueType ValueType, value float64, labelValues 
 		val:        value,
 		labelPairs: makeLabelPairs(desc, labelValues),
 	}, nil
-}
-
-func fixInvalidLabels(vals []string) []string {
-	for i, val := range vals {
-		if !utf8.ValidString(val) {
-			v := make([]rune, 0, len(val))
-			for i, r := range val {
-				if r == utf8.RuneError {
-					_, size := utf8.DecodeRuneInString(val[i:])
-					if size == 1 {
-						continue
-					}
-				}
-				v = append(v, r)
-			}
-			vals[i] = string(v)
-		}
-	}
-
-	return vals
 }
 
 // MustNewConstMetric is a version of NewConstMetric that panics where

@@ -82,18 +82,13 @@ func (v *valueFunc) Write(out *dto.Metric) error {
 // invalid.
 func NewConstMetric(desc *Desc, valueType ValueType, value float64, labelValues ...string) (Metric, error) {
 	if desc.err != nil {
+		log.Warnf("Desc.err %s: %+v, %s", desc.fqName, labelValues, desc.err)
 		return nil, desc.err
 	}
 
 	if err := validateLabelValues(labelValues, len(desc.variableLabels)); err != nil {
 		log.Warnf("Failed to validate labels on metric %s: %+v", desc.fqName, labelValues)
-
-		return &constMetric{
-			desc:       desc,
-			valType:    valueType,
-			val:        value,
-			labelPairs: make([]*dto.LabelPair, 0),
-		}, nil
+		return nil, err
 	}
 	return &constMetric{
 		desc:       desc,
